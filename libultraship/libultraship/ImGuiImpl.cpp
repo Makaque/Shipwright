@@ -145,6 +145,8 @@ namespace SohImGui {
         "Hexaquinquagintiducentuple (256x)"
     };
 
+    const char* swigTimes[4] = { "Fastest", "Fast", "Medium", "Slow (Vanilla)"};
+
     std::map<std::string, std::vector<std::string>> hiddenwindowCategories;
     std::map<std::string, std::vector<std::string>> windowCategories;
     std::map<std::string, CustomWindow> customWindows;
@@ -1373,6 +1375,31 @@ namespace SohImGui {
                         Tooltip("Disables heart drops, but not heart placements, like from a Deku Scrub running off\nThis simulates Hero Mode from other games in the series");
                         PaddedEnhancementCheckbox("Always Win Goron Pot", "gGoronPot", true, false);
                         Tooltip("Always get the heart piece/purple rupee from the spinning Goron pot");
+                        InsertPadding();
+
+                        if(ImGui::BeginMenu("Realtime Items")){
+                            PaddedEnhancementCheckbox("Realtime Potions", "gRealtimeDrink", true, false);
+                            Tooltip("Using items doesn't stop time or prevent damage");
+                            if(CVar_GetS32("gRealtimeDrink", 0) == 0){
+                                CVar_SetS32("gRealClippedAnim", 0);
+                            } else if(CVar_GetS32("gRealtimeDrink", 0) == 1){
+                                PaddedEnhancementCheckbox("Clipped Animations", "gRealClippedAnim", true, false);
+                                Tooltip("Use shorter animations for drinking potions");
+                                if(CVar_GetS32("gRealClippedAnim", 0) == 0){
+                                    CVar_SetS32("gRealSwigTime", 1);
+                                } else if(CVar_GetS32("gRealClippedAnim", 0) == 1){
+                                    EnhancementCombobox("gRealSwigTime", swigTimes, 4, 1);
+                                    Tooltip(
+                                        "Changes the lead up time to drink from a bottle\n\
+                                        Fastest: Drink almost immediately\n\
+                                        Fast: Drink in half the time\n\
+                                        Medium: Drink in 2/3 the time\n\
+                                        Slow (Vanilla): Same time as vanilla"
+                                    );
+                                }
+                            }
+                            ImGui::EndMenu();
+                        }
                         InsertPadding();
 
                         if (ImGui::BeginMenu("Potion Values"))

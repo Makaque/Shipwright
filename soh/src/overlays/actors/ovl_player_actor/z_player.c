@@ -1236,6 +1236,42 @@ void func_80832B78(GlobalContext* globalCtx, Player* this, LinkAnimationHeader* 
         ANIMMODE_ONCE, -6.0f);
 }
 
+void Player_BottleOpenAnimation(GlobalContext* globalCtx, Player* this, LinkAnimationHeader* anim){
+    if(!CVar_GetS32("gRealClippedAnim", 0)){
+        func_80832B78(globalCtx, this, anim);
+    } else {
+        f32 swigTime;
+        switch(CVar_GetS32("gRealSwigTime", 0)){
+            case (s16) 0:
+                swigTime = Animation_GetLastFrame(anim)/1.5f;
+                break;
+            case (s16) 1:
+                swigTime = Animation_GetLastFrame(anim)/2.0f;
+                break;
+            case (s16) 2:
+                swigTime = Animation_GetLastFrame(anim)/3.0f;
+                break;
+            case (s16) 3:
+                swigTime = 0.0f;
+                break;
+            default:
+                swigTime = 0.0f;
+                break;
+        }
+        LinkAnimation_Change(globalCtx, &this->skelAnime, anim, 2.0f / 3.0f, swigTime, Animation_GetLastFrame(anim),
+            ANIMMODE_ONCE, -6.0f);
+    }
+}
+
+void Player_BottleDrinkAnimation(GlobalContext* globalCtx, Player* this, LinkAnimationHeader* anim){
+    if(!CVar_GetS32("gRealClippedAnim", 0)){
+        func_80832B78(globalCtx, this, anim);
+    } else {
+        LinkAnimation_Change(globalCtx, &this->skelAnime, anim, 2.0f / 3.0f, 0.0f, Animation_GetLastFrame(anim) - 37.0f,
+            ANIMMODE_ONCE, -6.0f);
+    }
+}
+
 void func_80832BE8(GlobalContext* globalCtx, Player* this, LinkAnimationHeader* anim) {
     LinkAnimation_Change(globalCtx, &this->skelAnime, anim, 1.0f, 0.0f, 0.0f, ANIMMODE_LOOP, -6.0f);
 }
@@ -4825,6 +4861,7 @@ s32 func_8083B040(Player* this, GlobalContext* globalCtx) {
     s32 sp28;
     GetItemEntry giEntry;
     Actor* targetActor;
+    u8 realtime = 0;
 
     if ((this->unk_6AD != 0) &&
         (func_808332B8(this) || (this->actor.bgCheckFlags & 1) || (this->stateFlags1 & PLAYER_STATE1_23))) {
@@ -4936,8 +4973,13 @@ s32 func_8083B040(Player* this, GlobalContext* globalCtx) {
                     }
                     else {
                         func_80835DE4(globalCtx, this, func_8084EAC0, 0);
-                        func_80832B78(globalCtx, this, &gPlayerAnim_002668);
-                        func_80835EA4(globalCtx, 2);
+                        if (!CVar_GetS32("gRealtimeDrink", 0)){
+                            func_80832B78(globalCtx, this, &gPlayerAnim_002668);
+                            func_80835EA4(globalCtx, 2);
+                        } else {
+                            realtime = 1;
+                            Player_BottleOpenAnimation(globalCtx, this, &gPlayerAnim_002668);
+                        }
                     }
                 }
                 else {
@@ -4968,7 +5010,9 @@ s32 func_8083B040(Player* this, GlobalContext* globalCtx) {
                 return 0;
             }
 
-            this->stateFlags1 |= PLAYER_STATE1_28 | PLAYER_STATE1_29;
+            if (!realtime){
+                this->stateFlags1 |= PLAYER_STATE1_28 | PLAYER_STATE1_29;
+            }
         }
 
         func_80832224(this);
@@ -13069,6 +13113,11 @@ void func_8084EAC0(Player* this, GlobalContext* globalCtx) {
 
             func_808322A4(globalCtx, this, &gPlayerAnim_002670);
             this->unk_850 = 1;
+
+            if (CVar_GetS32("gRealtimeDrink", 0)){
+                Player_UpdateBottleHeld(globalCtx, this, ITEM_BOTTLE, PLAYER_AP_BOTTLE);
+            }
+
             return;
         }
 
@@ -13077,14 +13126,24 @@ void func_8084EAC0(Player* this, GlobalContext* globalCtx) {
     }
     else if (this->unk_850 == 1) {
         if ((gSaveContext.healthAccumulator == 0) && (gSaveContext.unk_13F0 != 9)) {
-            func_80832B78(globalCtx, this, &gPlayerAnim_002660);
+            if (!CVar_GetS32("gRealtimeDrink", 0)){
+                func_80832B78(globalCtx, this, &gPlayerAnim_002660);
+            } else {
+                Player_BottleDrinkAnimation(globalCtx, this, &gPlayerAnim_002660);
+            }
             this->unk_850 = 2;
-            Player_UpdateBottleHeld(globalCtx, this, ITEM_BOTTLE, PLAYER_AP_BOTTLE);
+            if(!CVar_GetS32("gRealtimeDrink", 0)){
+                Player_UpdateBottleHeld(globalCtx, this, ITEM_BOTTLE, PLAYER_AP_BOTTLE);
+            }
         }
         func_80832698(this, NA_SE_VO_LI_DRINK - SFX_FLAG);
     }
-    else if ((this->unk_850 == 2) && LinkAnimation_OnFrame(&this->skelAnime, 29.0f)) {
-        func_80832698(this, NA_SE_VO_LI_BREATH_DRINK);
+    else if (this->unk_850 == 2) {
+        if(!CVar_GetS32("gRealClippedAnim", 0) && LinkAnimation_OnFrame(&this->skelAnime, 29.0f)){
+            func_80832698(this, NA_SE_VO_LI_BREATH_DRINK);
+        } else if (CVar_GetS32("gRealClippedAnim", 0) && LinkAnimation_OnFrame(&this->skelAnime, 9.0f)){
+            func_80832698(this, NA_SE_VO_LI_BREATH_DRINK);
+        }
     }
 }
 
